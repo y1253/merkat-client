@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npx @nestjs/cli@latest new . --package-manager npm --skip-git --skip-install)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Read(//tmp/**)",
+      "Bash(curl *)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Keys:', Object.keys\\(j\\)\\); console.log\\('Data length:', j.data?.length\\); if\\(j.data?.[0]\\) console.log\\('Sample:', JSON.stringify\\(j.data[0]\\).slice\\(0,500\\)\\);\")",
+      "Bash(PowerShell -Command \"Invoke-RestMethod -Uri 'https://clob.polymarket.com/markets?limit=3&active=true&closed=false' -SkipCertificateCheck | ConvertTo-Json -Depth 3\")",
+      "Bash(node *)",
+      "Bash(taskkill /F /IM node.exe)",
+      "PowerShell(Stop-Process *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('exports', {}\\), indent=2\\)\\)\")"
+    ]
+  }
+}
