@@ -132,6 +132,9 @@ export class PolymarketAdapter {
     } while (true);
 
     this.logger.log(`Fetched ${markets.length} active Polymarket markets (${pages} pages)`);
+    if (markets.length === 0) {
+      throw new Error('No active binary Yes/No markets found after filtering');
+    }
     return markets;
   }
 }
