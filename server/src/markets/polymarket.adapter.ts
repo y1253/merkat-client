@@ -5,8 +5,7 @@ import * as https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { RawMarket } from '../types/market.types';
 
-const CLOB_BASE = 'https://clob.polymarket.com';
-
+const GAMMA_BASE = 'https://gamma-api.polymarket.com';
 
 function makeDemoMarkets(): RawMarket[] {
   const templates = [
@@ -55,7 +54,6 @@ export class PolymarketAdapter {
   }
 
   async fetchMarkets(): Promise<RawMarket[]> {
-    // If proxy is configured, always try real API (reset demo mode each cycle)
     if (this.config.get('PROXY_URL')) this.useDemoMode = false;
 
     if (this.useDemoMode) {
@@ -83,12 +81,13 @@ export class PolymarketAdapter {
 
   private async doFetch(): Promise<RawMarket[]> {
     const markets: RawMarket[] = [];
-    let nextCursor = '';
+    const pageSize = 200;
+    let offset = 0;
     let pages = 0;
 
     do {
-      const qs = nextCursor ? `?limit=1000&next_cursor=${encodeURIComponent(nextCursor)}` : '?limit=1000';
-      const res = await axios.get(`${CLOB_BASE}/markets${qs}`, {
+      const res = await axios.get(`${GAMMA_BASE}/markets`, {
+        params: { active: true, closed: false, limit: pageSize, offset },
         headers: { Accept: 'application/json' },
         httpsAgent: this.getAgent(),
         proxy: false,
@@ -99,41 +98,44 @@ export class PolymarketAdapter {
         throw new Error('BLOCKED — HTML response received');
       }
 
-      const batch: any[] = res.data.data || [];
+      const batch: any[] = Array.isArray(res.data) ? res.data : [];
       for (const m of batch) {
-        if (!m.tokens || m.tokens.length < 2) continue;
-        const yesToken = m.tokens.find((t: any) => t.outcome === 'Yes');
-        const noToken = m.tokens.find((t: any) => t.outcome === 'No');
-        if (!yesToken || !noToken) continue;
+        try {
+          const outcomes: string[] = JSON.parse(m.outcomes);
+          const prices: string[] = JSON.parse(m.outcomePrices);
+          const yesIdx = outcomes.indexOf('Yes');
+          const noIdx = outcomes.indexOf('No');
+          if (yesIdx === -1 || noIdx === -1) continue;
 
-        const yp = Number(yesToken.price);
-        const np = Number(noToken.price);
-        if (yp <= 0.01 || yp >= 0.99 || np <= 0.01 || np >= 0.99) continue;
-        if (!m.active || m.closed) continue;
+          const yp = Number(prices[yesIdx]);
+          const np = Number(prices[noIdx]);
+          if (yp <= 0.01 || yp >= 0.99 || np <= 0.01 || np >= 0.99) continue;
 
-        markets.push({
-          platform: 'polymarket',
-          id: m.condition_id,
-          title: m.question || m.market_slug,
-          description: m.description || '',
-          yesPrice: yp,
-          noPrice: np,
-          volume24h: parseFloat(m.volume24hr) || 0,
-          closesAt: new Date(m.end_date_iso || Date.now() + 86400000),
-          fetchedAt: new Date(),
-          url: m.market_slug ? `https://polymarket.com/event/${m.market_slug}` : undefined,
-        });
+          markets.push({
+            platform: 'polymarket',
+            id: m.conditionId || m.id,
+            title: m.question,
+            description: m.description || '',
+            yesPrice: Math.round(yp * 1000) / 1000,
+            noPrice: Math.round(np * 1000) / 1000,
+            volume24h: Number(m.volume24hr) || 0,
+            closesAt: new Date(m.endDate || Date.now() + 86400000),
+            fetchedAt: new Date(),
+            url: m.slug ? `https://polymarket.com/event/${m.slug}` : undefined,
+          });
+        } catch {
+          continue;
+        }
       }
 
-      nextCursor = res.data.next_cursor || '';
       pages++;
-      if (!nextCursor || nextCursor === 'LTE=' || pages >= 15) break;
-      if (markets.length >= 400) break;
+      if (batch.length < pageSize || markets.length >= 400) break;
+      offset += pageSize;
     } while (true);
 
     this.logger.log(`Fetched ${markets.length} active Polymarket markets (${pages} pages)`);
     if (markets.length === 0) {
-      throw new Error('No active binary Yes/No markets found after filtering');
+      throw new Error('No active binary Yes/No markets found');
     }
     return markets;
   }
