@@ -161,11 +161,11 @@ export class KalshiAdapter {
 
       this.logger.log(`Fetched ${markets.length} Kalshi markets`);
 
-      // If all real markets are sports props with no overlap potential, use demo
-      const hasSemanticallyMatchableMarkets = markets.some(
-        (m) => !m.title.startsWith('yes ') && !m.title.match(/\d+\.\d+ runs|inning|spread/i),
-      );
-      if (markets.length > 0 && !hasSemanticallyMatchableMarkets) {
+      // Switch to demo if real markets are all game-level props with no Polymarket overlap.
+      // Polymarket currently focuses on championship-level sports + political/financial markets.
+      const KEY_TERMS = /nba finals|world cup|super bowl|federal reserve|fed rate|bitcoin|ethereum|cpi|gdp|election|president|trump|congress|senate|inflation/i;
+      const hasMatchableMarkets = markets.some((m) => KEY_TERMS.test(m.title));
+      if (markets.length > 0 && !hasMatchableMarkets) {
         this.logger.warn('All Kalshi markets are game-level props with no Polymarket overlap — switching to demo');
         this.useDemoMode = true;
         return makeDemoMarkets();
