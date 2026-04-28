@@ -90,10 +90,16 @@ export class KalshiAdapter {
 
           if (yesPrice <= 0 || yesPrice >= 1) continue;
 
+          // Use subtitle as title when title is a compound sports prop list
+          const rawTitle: string = m.title || '';
+          const title = rawTitle.includes(',') && rawTitle.startsWith('yes ')
+            ? (m.subtitle || m.rules_primary || rawTitle)
+            : rawTitle;
+
           markets.push({
             platform: 'kalshi',
             id: m.ticker,
-            title: m.title,
+            title,
             description: m.subtitle || m.rules_primary || '',
             yesPrice,
             noPrice: 1 - yesPrice,

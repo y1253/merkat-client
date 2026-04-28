@@ -43,8 +43,6 @@ export class NormalizationService implements OnModuleInit {
     const polyMarkets = markets.filter((m) => m.platform === 'polymarket');
     const kalshiMarkets = markets.filter((m) => m.platform === 'kalshi');
     this.logger.log(`Normalization triggered: ${polyMarkets.length} poly + ${kalshiMarkets.length} kalshi`);
-    this.logger.debug(`Sample Kalshi titles: ${kalshiMarkets.slice(0,5).map(m=>m.title).join(' | ')}`);
-    this.logger.debug(`Sample Poly titles: ${polyMarkets.slice(0,5).map(m=>m.title).join(' | ')}`);
 
     if (!polyMarkets.length || !kalshiMarkets.length) return;
 

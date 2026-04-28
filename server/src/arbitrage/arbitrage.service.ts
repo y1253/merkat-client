@@ -23,10 +23,6 @@ export class ArbitrageService {
   onMarketsUpdated(markets: RawMarket[]) {
     const pairs = this.normalization.getAllPairs();
     this.scan(markets, pairs);
-    // When no pairs exist yet (normalization still running / demo mode), do a blind price scan
-    if (pairs.length === 0) {
-      this.scanBlind(markets);
-    }
   }
 
   @OnEvent('pairs.updated')
